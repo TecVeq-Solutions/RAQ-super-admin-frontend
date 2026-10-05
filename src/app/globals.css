@@ -2,26 +2,166 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Base Color Tokens - Light Mode */
+    --bg-primary: #F8FAFC;
+    --bg-surface: #FFFFFF;
+    --bg-card: #FFFFFF;
+    --text-primary: #0F172A;
+    --text-muted: #64748B;
+    --border-color: #E2E8F0;
+
+    /* Brand & Accent Tokens */
+    --primary: #16A34A;
+    --primary-dark: #059669;
+    --primary-subtle: #DCFCE7;
+    --navy: #0F172A;
+
+    /* Semantic Status Tokens */
+    --success: #16A34A;
+    --warning: #D97706;
+    --error: #DC2626;
+    --info: #2563EB;
+  }
+
+  [data-theme='dark'] {
+    /* Base Color Tokens - Dark Mode */
+    --bg-primary: #0B0F19;
+    --bg-surface: #111827;
+    --bg-card: #1F2937;
+    --text-primary: #F9FAFB;
+    --text-muted: #9CA3AF;
+    --border-color: #374151;
+
+    /* Brand & Accent Tokens */
+    --primary: #22C55E;
+    --primary-dark: #16A34A;
+    --primary-subtle: #064E3B;
+    --navy: #1E293B;
+
+    /* Semantic Status Tokens */
+    --success: #22C55E;
+    --warning: #F59E0B;
+    --error: #EF4444;
+    --info: #3B82F6;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 font-sans antialiased min-h-screen;
+    font-family: var(--font-poppins), 'Poppins', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.01em;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+/* Custom transitions and scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* =========================================================================
+   Optimized Skeleton Shimmer & Loading Animation Utility
+   - Fast 1.25s GPU-accelerated transform
+   - Light, clean, subtle appearance
+   - Zero layout reflow / lightweight composite
+   - Respects prefers-reduced-motion
+   ========================================================================= */
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: #f1f5f9; /* slate-100 */
+}
+
+[data-theme='dark'] .skeleton-shimmer {
+  background-color: rgba(30, 41, 59, 0.45); /* slate-800/45 */
+}
+
+.skeleton-shimmer::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: skeleton-shimmer-kf 1.25s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  content: '';
+  pointer-events: none;
+  will-change: transform;
+}
+
+[data-theme='dark'] .skeleton-shimmer::after {
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+/* Subtle dark-surface skeleton shimmer variant (for dark banners/sidebars) */
+.skeleton-shimmer-dark {
+  position: relative;
+  overflow: hidden;
+  background-color: rgba(30, 41, 59, 0.6); /* slate-800/60 */
+}
+
+.skeleton-shimmer-dark::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: skeleton-shimmer-kf 1.25s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  content: '';
+  pointer-events: none;
+  will-change: transform;
+}
+
+@keyframes skeleton-shimmer-kf {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer::after,
+  .skeleton-shimmer-dark::after,
+  .animate-pulse,
+  .animate-shimmer {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+

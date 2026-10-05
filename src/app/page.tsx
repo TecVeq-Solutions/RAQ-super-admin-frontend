@@ -1,101 +1,209 @@
-import Image from "next/image";
+'use client';
+import { Users, Key, AlertTriangle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { api } from '@/lib/api';
 
-export default function Home() {
+export default function Dashboard() {
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
+
+  const fetchDashboard = async () => {
+    try {
+      const data = await api.get('/super-admin/dashboard');
+      setStats(data.data);
+    } catch (err) {
+      console.error('Failed to fetch dashboard', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboard();
+  }, []);
+
+  const handleRenew = async (id: number) => {
+    try {
+      setActionLoading(id);
+      await api.post(`/super-admin/licenses/${id}/renew`, {});
+      await fetchDashboard();
+      alert('License renewed successfully!');
+    } catch (err: any) {
+      alert(err.data?.message || 'Failed to renew license');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  if (loading) {
+    return <div className="p-8 text-center">Loading dashboard...</div>;
+  }
+
+  if (!stats) {
+    return <div className="p-8 text-center text-red-500">Failed to load dashboard data.</div>;
+  }
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Overview</h1>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Central management of tenants, licenses, and packages.
+        </p>
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {/* Expiry Alerts */}
+      {stats.expiring_licenses && stats.expiring_licenses.length > 0 && (
+        <div className="space-y-3">
+          {stats.expiring_licenses.map((license: any) => {
+            let message = '';
+            let isExpired = license.isExpired || license.daysRemaining === -1;
+            
+            if (isExpired) {
+              message = `Package for ${license.clientName} has expired on ${license.expiryDate}. Please renew the package to restore service.`;
+            } else if (license.daysRemaining === 0) {
+              message = `Package for ${license.clientName} expires today. Please renew the package to continue service.`;
+            } else if (license.daysRemaining === 1) {
+              message = `Package for ${license.clientName} expires tomorrow. Please renew the package to continue service.`;
+            } else {
+              message = `Package for ${license.clientName} will expire in ${license.daysRemaining} days. Please renew the package to continue service.`;
+            }
+
+            return (
+              <div key={license.id} className={`flex items-center justify-between p-4 border rounded-lg shadow-sm ${isExpired ? 'bg-red-50 border-red-200 text-red-800' : 'bg-yellow-50 border-yellow-200 text-yellow-800'}`}>
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className={`w-5 h-5 shrink-0 ${isExpired ? 'text-red-600' : 'text-yellow-600'}`} />
+                  <div>
+                    <strong className="block font-semibold">{isExpired ? 'License Expired!' : 'License Expiring Soon!'}</strong>
+                    <span className="text-sm">{message}</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleRenew(license.id)}
+                  disabled={actionLoading === license.id}
+                  className={`px-4 py-2 text-white text-sm font-bold rounded-lg transition-colors whitespace-nowrap disabled:opacity-50 ${isExpired ? 'bg-red-600 hover:bg-red-700' : 'bg-yellow-600 hover:bg-yellow-700'}`}
+                >
+                  {actionLoading === license.id ? 'Renewing...' : 'Renew Package'}
+                </button>
+              </div>
+            );
+          })}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      )}
+
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Card 1 */}
+        <div className="bg-white dark:bg-gray-900 overflow-hidden shadow rounded-lg border border-gray-200 dark:border-gray-800">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <Users className="h-6 w-6 text-gray-400" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Tenants</dt>
+                  <dd className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.total_tenants}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2 */}
+        <div className="bg-white dark:bg-gray-900 overflow-hidden shadow rounded-lg border border-gray-200 dark:border-gray-800">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <Key className="h-6 w-6 text-green-500" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Active Licenses</dt>
+                  <dd className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.active_licenses}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3 */}
+        <div className="bg-white dark:bg-gray-900 overflow-hidden shadow rounded-lg border border-gray-200 dark:border-gray-800">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <AlertTriangle className="h-6 w-6 text-red-500" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Expired Licenses</dt>
+                  <dd className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.expired_licenses}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white dark:bg-gray-900 shadow rounded-lg border border-gray-200 dark:border-gray-800">
+          <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-800">
+            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Recent Clients</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+              <thead className="bg-gray-50 dark:bg-gray-950">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Package</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+                {stats.recent_tenants?.map((client: any) => (
+                  <tr key={client.id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{client.companyName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{client.package}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        client.licenseStatus === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                      }`}>
+                        {client.licenseStatus}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-900 shadow rounded-lg border border-gray-200 dark:border-gray-800">
+          <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-800">
+            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Recent Licenses</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+              <thead className="bg-gray-50 dark:bg-gray-950">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Key</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+                {stats.recent_licenses?.map((license: any) => (
+                  <tr key={license.id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500 dark:text-gray-400">{license.key}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{license.clientName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{license.expiryDate}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
